@@ -1,88 +1,147 @@
-# Phonepe Pulse Data Visualization
+![img](./source/images/pulse-logo.png)
 
-## Introduction 
+# Data Visualization and Exploration : A User-Friendly Tool Using Streamlit and Plotly
 
-* PhonePe has become one of the most popular digital payment platforms in India, with millions of users relying on it for their day-to-day transactions. The app is known for its simplicity, user-friendly interface, and fast and secure payment processing. It has also won several awards and accolades for its innovative features and contributions to the digital payments industry.
+## What is PhonePe Pulse?
 
-* We create a web app to analyse the Phonepe transaction and users depending on various Years, Quarters, States, and Types of transaction and give a Geographical and Geo visualization output based on given requirements.
+The [PhonePe Pulse website](https://www.phonepe.com/pulse/) showcases more than 2000+ Crore transactions by consumers on an interactive map of India. With over 45% market share, PhonePe's data is representative of the country's digital payment habits.
+The insights on the website and in the report have been drawn from two key sources - the entirety of PhonePe's transaction data combined with merchant and customer interviews. The report is available as a free download on the [PhonePe Pulse website](https://www.phonepe.com/pulse/) and [GitHub](https://github.com/PhonePe/pulse).
 
-###### " Disclaimer:-This data between 2018 to Q2 of 2023 in INDIA only "
+## Libraries / Modules needed for the project!
 
+1.  Streamlit - creates GUI
+2.  Plotly - plots and visualizes data
+3.  Pandas - creates DataFrame with the scraped data
+4.  GitPython - manages Git repositories
+5.  mysql-connector-python - accessing MySQL database
 
-## Developer Guide 
+## Workflow
 
-### 1. Tools install
+### Step 1:
 
-* virtual code.
-* Jupyter notebook.
-* Python 3.11.0 or higher.
-* MySQL
-* Git
+**Importing the Libraries:**
 
-### 2. Requirement Libraries to Install
+Importing the libraries. As I have already mentioned above the list of libraries/modules needed for the project. First we have to import all those libraries. If the libraries are not installed already use the below piece of code to install.
 
-* pip install pandas numpy os json requests subprocess mysql.connector sqlalchemy pymysql streamlit plotly.express
+```python
+  pip install ["library name"]
+```
 
-### 3. Import Libraries
+If the libraries are already installed then we have to import those into our script by mentioning the below codes.
 
-**clone libraries**
-* from git import Repo
+```python
+  import os
+  import json
+  import pandas as pd
+  import streamlit as st
+  import plotly.express as px
+  import mysql.connector as sql
+  from PIL import Image
+  from git.repo.base import Repo
+  from streamlit_option_menu import option_menu
+```
 
-**pandas, numpy and file handling libraries**
-* import pandas as pd
-* import numpy as np
-* import os
-* import json
+### Step 2:
 
-**SQL libraries**
-* import pymysql
+**Data extraction:**
 
-**Dashboard libraries**
-* import streamlit as st
-* import plotly.express as px
+Clone the Github using scripting to fetch the data from the Phonepe pulse Github repository and store it in a suitable format such as JSON. Use the below syntax to clone the phonepe github repository into your local drive.
 
-### 4. E T L Process
+```python
+  from git.repo.base import Repo
+  Repo.clone_from("GitHub repo URL","path to local directory for repo")
+```
 
-#### a) Extract data
+### Step 3:
 
-* Initially, we Clone the data from the Phonepe GitHub repository by using Python libraries. https://github.com/PhonePe/pulse.git
+**Data transformation:**
 
-#### b) Process and Transform the data
+In this step the JSON files that are available in the folders are converted into the readable and understandable DataFrame format by using the for loop and iterating file by file and then finally the DataFrame is created. In order to perform this step I've used **os**, **json** and **pandas** packages. And finally converted the dataframe into CSV file and storing in the local drive.
 
-* Process the clone data by using Python algorithms and transform the processed data into DataFrame format and E D A Process and Frame work.
+```python
+json_path = "path to JSON files"
+files_list = os.listdir(json_path)
 
-#### c) Load  data 
+# column names that you want
+columns = {'State': [], 'Year': [], 'Quarter': [], 'Transaction_type': [], 'Transaction_count': [],'Transaction_amount': []}
+```
 
-* Finally, create a connection to the MySQL server and create a Database and Tables Transformed and stored data in the MySQL server.
+Looping through each and every folder and opening the json files appending only the required key and values and creating the dataframe.
 
-#### a) Access MySQL DB 
+```python
+  for state in files_list:
+      current_state = os.path.join(json_path, state)
+      aggregate_year_list = os.listdir(current_state)
 
-* Create a connection to the MySQL server and access the specified MySQL DataBase by using pymysql library 
+      for year in aggregate_year_list:
+          current_year = os.path.join(current_state, year)
+          aggregate_file_list = os.listdir(current_year)
 
-#### b) Filter the data
+          for file in aggregate_file_list:
+              current_file = os.path.join(current_year, file)
+              data = open(current_file, 'r')
+              A = json.load(data)
 
-* Filter and process the collected data depending on the given requirements by using SQL queries
+              for i in A['data']['transactionData']:
+                  name = i['name']
+                  count = i['paymentInstruments'][0]['count']
+                  amount = i['paymentInstruments'][0]['amount']
+                  columns['Transaction_type'].append(name)
+                  columns['Transaction_count'].append(count)
+                  columns['Transaction_amount'].append(amount)
+                  columns['State'].append(state)
+                  columns['Year'].append(year)
+                  columns['Quarter'].append(int(file.strip('.json')))
 
-#### c) Visualization 
+  df = pd.DataFrame(columns)
+```
 
-* Finally, create a Dashboard by using Streamlit and applying selection and dropdown options on the Dashboard and show the output are bar chart, and Dataframe Table
+##### Converting the dataframe into csv file
 
+```python
+  df.to_csv('filename.csv',index=False)
+```
 
-## User Guide
+### Step 4:
 
-#### Step 1.
+**Database insertion:**
 
-* Select any one option fron **All India** or **State wise** or **Top Ten categories**.
+To insert the dataframe into SQL first I've created a new database and tables using **"mysql-connector-python"** library in Python to connect to a MySQL database and insert the transformed data using SQL commands.
 
-#### Step 2.
+**Creating the connection between python and mysql**
 
-* Select any one option fron **Transaction** or **User**.
+```python
+  db_connection = sql.connect(host="localhost",
+              user="username",
+              password="password",
+              database= "phonepe_pulse"
+            )
+  db_cursor = db_connection.cursor(buffered=True)
+```
 
-#### Step 3.
-* Select any **Year**, **Quarter** and additional required option.
+**Creating tables**
 
-#### Step 4.
+```python
+  db_cursor.execute("CREATE TABLE 'Table name' (col1 VARCHAR(100), col2 INT, col3 INT, col4 VARCHAR(100), col5 INT, col6 DOUBLE)")
 
-* Finally, You get the  **Bar chart Analysis** and **Table format Analysis**
+  for i,row in df.iterrows():
 
+      # %s means string values
+      sql = "INSERT INTO <table> VALUES (%s,%s,%s,%s,%s,%s)"
+      db_cursor.execute(sql, tuple(row))
 
+      # the connection is not auto committed by default, so we must commit to save our changes
+      db_connection.commit()
+```
+
+### Step 5:
+
+**Dashboard creation:**
+
+To create colourful and insightful dashboard I've used Plotly libraries in Python to create an interactive and visually appealing dashboard. Plotly's built-in Pie, Bar, Geo map functions are used to display the data on a charts and map and Streamlit is used to create a user-friendly interface with multiple dropdown options for users to select different facts and figures to display.
+
+### Step 6:
+
+**Data retrieval:**
+
+Finally if needed Using the "mysql-connector-python" library to connect to the MySQL database and fetch the data into a Pandas dataframe.
